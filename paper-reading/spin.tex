@@ -1,7 +1,7 @@
 %!TEX program = xelatex
-\documentclass[cn,normal,11pt]{../elegantnote}
+\documentclass[cn,pad,11pt,green,geye]{../elegantnote}
 
-\title{软件架构设计（读书笔记）}
+\title{sPIN: High-performance streaming Processing in the Network（阅读笔记）}
 
 \author{\href{https://github.com/lightjameslyy/}{刘涛}}
 \institute{中科院计算所}
@@ -16,141 +16,59 @@
 
 \setlist[itemize]{label=$\circ$}
 
-——大型网站技术架构与业务架构融合之道
-
-\section*{什么是架构}
-\begin{definition}[架构]
-   架构是针对所有重要问题做出的重要决策。
-\end{definition}
-
-本书目的：\textbf{借业务架构和技术架构的融合，来建立一种系统化的思维方式和学习方法}。
-
-\section{架构的分类}
-自底向上：
-\begin{enumerate}
-   \item 基础架构
-   \item 中间件与大数据平台
-   \item 业务系统架构
-      \begin{itemize}
-         \item 通用软件架构
-         \item 离线业务系统架构
-         \item 在线业务系统架构\textcolor{red}{（本书聚焦）}
-      \end{itemize}
-\end{enumerate}
-
-\section{架构的道与术}
-知行合一。
-
-\begin{table}[htbp]
-  \small
-  \centering
-  \caption{道与术的辨证关系}
-    \begin{tabular}{lc|c}
-    \toprule
-                    &       术            &          道        \\
-    \midrule
-                    &     外部招式        &      内功心法      \\
-                    &     行（实践）      &      知（理论）    \\
-                    &       答案          &        问题        \\
-    \bottomrule
-    \end{tabular}%
-  \label{tab:reg}%
-\end{table}%
-
-\section{语言}
-俗话说：千招会不如一招熟。
-
-精通一门语言。
-
-现代高级编程语言的共同特征：
+\section*{摘要}
+要点：
 \begin{itemize}
-   \item 基本数据类型
-   \item 类型转换、类型推断、类型安全
-   \item 顺序、选择、循环三种语句类型
-   \item 面向对象：封装、继承、多态
-   \item 常用数据结构的库
-   \item I/O 库
-   \item 线程库（或者协程库）
+   \item 优化通信对大规模计算很重要。
+   \item 目前网卡上的处理器的数据传输能力很强，但是功能单一（比如RDMA）。
+   \item sPIN：一个编程模型，a portable packet-processing network acceleration model （类似于使用 CUDA 或 OpenCL 加速计算）。将 simple packet processing offload 到网卡上。
+   \item 实现的功能：
+      \begin{itemize}
+         \item offloaded messsage matching
+         \item datatype processing
+         \item collective communications
+      \end{itemize}
 \end{itemize}
 
-\begin{note}
-学习 C++，需要懂对象的内存布局、编译器和连接器内部如何工作……
-\end{note}
+\section{Motivation}
 
-\section{操作系统}
+\subsection{Background}
 
-\subsection{缓冲 I/O 和直接 I/O}
-几个关键概念：
-\begin{definition}[应用程序内存]
-   我们开发的代码中用 malloc/free（或 new/delete）分配出来的内存空间。
-\end{definition}
-\begin{definition}[用户缓冲区]
-   C 语言 FILE 结构体中的 buffer。作用是：\textbf{减少系统调用次数，降低 I/O 过程中操作系统在用户态和内核态之间切换的消耗}。
-\end{definition}
-\begin{definition}[内核缓冲区]
-   Linux 操作系统的 Page Cache。作用是：\textbf{在操作系统层次提高磁盘 I/O 效率，优化磁盘写操作}。
-\end{definition}
-\begin{definition}[缓冲 I/O]
-   C 语言提供的库函数（以 f 打头）：fopen，fclose，fseek，fflush，fread，fwrite，fprintf，fscanf……
-\end{definition}
-\begin{definition}[直接 I/O]
-   Linux 的系统调用：open，close，lseek，fsync，read，write，pread，pwrite……
-\end{definition}
-\begin{note}
-      \item “直接 I/O”中“直接”的意思是没有用到用户缓冲区，但是内核缓冲区还是用到的。
-      \item fflush：用户缓冲区-->内核缓冲区；fsync：内核缓冲区-->磁盘。
-      \item \textcolor{red}{TODO}：pread/pwrite 在多线程读写同一个文件时很有用。
-\end{note}
+\section{Processing in the Network}
 
-\subsection{内存映射文件与零拷贝}
+\section{A COMPLETE sPIN INTERFACE}
 
-\subsubsection{内存映射文件}
+\subsection{Overview of Portals 4}
 
-\subsubsection{零拷贝}
+\subsection{A sPIN Interface for Portals 4}
 
-\subsection{网络 I/O 模型}
 
-\subsubsection{实现层面的网络 I/O 模型}
+\section{PROTOTYPING sPIN}
 
-\subsubsection{Reactor 模式与 Proactor 模式}
+\subsection{HPU Design}
 
-\subsubsection{select、epoll 的 LT 与 ET}
+\subsection{Simulation Setup}
 
-\subsubsection{服务器编程的 1+N+M 模型}
+\subsection{DMA and Memory Contention}
 
-\subsection{进程、线程和协程}
+\subsection{Microbenchmarks}
 
-\subsection{无锁（内存屏障与 CAS）}
 
-\subsubsection{内存屏障}
+\section{USE CASES FOR sPIN}
 
-\subsubsection{CAS}
+\subsection{Asynchronous Message Matching}
 
-\section{网络}
+\subsection{MPI Datatype}
 
-\section{数据库}
+\subsection{Distributed RAID Storage}
 
-\section{框架、软件与中间件}
+\subsection{Other Use Cases}
 
-\section{高并发问题}
+\section{RELATEDWORK}
 
-\section{高可用与稳定性}
+\section{DISCUSSION}
 
-\section{事务一致性}
-
-\section{多副本一致性}
-
-\section{CAP 理论}
-
-\section{业务意识}
-
-\section{业务架构思维}
-
-\section{技术架构与业务架构的融合}
-
-\section{个人素质的提升}
-
-\section{团队能力的提升}
+\section{SUMMARY AND CONCLUSIONS}
 
 
 \section{模板设计}
