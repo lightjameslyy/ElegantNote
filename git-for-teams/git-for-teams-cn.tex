@@ -56,6 +56,46 @@ Git 的历史：
 
 \section{命令与控制}
 
+\subsection{项目治理}
+了解一段代码的归属。
+
+\subsubsection{版权和贡献者协议}
+版权只保护作品的具体实现。
+
+贡献者协议存在的原因：允许项目无需个人贡献者的同意就可以更改项目的分发许可。
+
+\subsubsection{分发许可}
+
+\begin{enumerate}
+   \item MIT 许可证：注明原作者，不需要为衍生软件负责。例如：jQuery、Rails。
+   \item Apache 许可证：将原作者的专利授权给用户，要求作者提供变更说明。例如：Apache、Subversion、NuGet。
+   \item GNU 许可证：以相同协议共享。例如：Linux、Git、Word Press。
+\end{enumerate}
+
+\subsubsection{领导力模型}
+\begin{itemize}
+   \item 仁慈的独裁者（BDFL）
+   \item 共识驱动、主管批准
+   \item 技术评审委员会或项目管理委员会
+\end{itemize}
+
+\subsubsection{行为守则}
+Code of Conduct，参考：Flickr社区、Drupal社区等。
+
+\subsection{访问模型}
+Git 的 MBTI 性格测试结果：INTP（内向、直觉、理性、理解）
+
+\subsubsection{适合分散贡献者仓库的模型}
+用 diff 创建补丁文件，邮件评审，用 patch 命令更新仓库。
+
+\subsubsection{适合并列贡献者仓库的模型}
+fork，clone，checkout，commit，push，pull request
+
+\subsubsection{共同维护的模型}
+内部团队（和个人团队）中最常见的权限模型。
+
+我们组目前使用的访问模型。
+
 \section{分支策略}
 
 \section{工作流}
