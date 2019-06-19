@@ -31,8 +31,54 @@
 \end{itemize}
 
 \section{Motivation}
+用 slow but energy-efficient processors 构建 highly-scalable computing system 给 interconnection netowrk 带来更大的挑战。
+
+最近在 bandwidth 和 latency 方面的工作倾向：remove CPU from packet processing path。
+
+specialized data processors in modern NIC（Network Interface Cards）：RDMA；几十GB/s，sub-microsecond 延迟。
+
+RDMA 只在不同网络端点上的进程的内存空间之间传输数据。
+
+如果 Tb/s 的网络到来，会有瓶颈：现在的 CPU 访问 L3 Cache 需要 10~15ns，但是 400Gb/s 的 NIC 每 1.2ns 就能传输 64B（一个 cache line）。
+
+最主要的问题是：packets 只是简单的存放在 main memory，然后许多应用程序再对消息进行 analysis 和 rearrange。这个过程造成一个 barrier，类似于 pre-RDMA packets processing：但是 CPU 是用来计算的，并不擅长 message processing。而且这些数据会 pollute caches，将真正用来计算的数据“挤出” cache。由于没有良好的接口，NIC 上的 highly-optimized data-movement cores 只能像瞎子一样把数据扔进 host memory。
+
+本文提出的解决方案：sPIN（streaming Processing in the Network），将 RDMA 和 receiver-based matching 扩展到由 data-movement 主导的简单处理任务。设计了统一接口，可以 specify kernels，在 NIC 上执行。
+
+kernel offload data-movement-heavy tasks。tasks 处理 incoming messages，只需要有限的 local state。
+
+concepts：packetization，buffering，packet steering。
+
+开发者定义 handlers：
+\begin{itemize}
+   \item header：header handler code
+   \item packet content handler code
+   \item post-message handler code
+\end{itemize}
+
+在 NIC 的 HPU（handler processing units）上对匹配的 packets 进行处理。
+
+handler code 在连接建立阶段传递，这样单进程就可以对不同的连接指定不同的 handler。
+
+本文主要内容：
+\begin{itemize}
+   \item design of an acceleration system for NIC offload
+   \item outline a microarchitecture for offload-enabled smart NICs
+   \item design a cycle-accurate validated simulation environment （整合 network，offload-enabled NIC 和 CPU）
+   \item 分析实例：并行应用、分布式数据管理系统
+   \item speedups
+\end{itemize}
 
 \subsection{Background}
+相关技术：
+
+\begin{enumerate}
+   \item active messages（AM）：
+      \begin{itemize}
+         \item AM 针对 full messages，sPIN 则是基于 per-packet 的流式处理。
+         \item AM 将消息缓存在 host memory，sPIN 主要将消息放在
+      \end{itemize}
+\end{enumerate}
 
 \section{Processing in the Network}
 

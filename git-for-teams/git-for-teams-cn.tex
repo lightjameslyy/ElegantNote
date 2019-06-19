@@ -98,6 +98,34 @@ fork，clone，checkout，commit，push，pull request
 
 \section{分支策略}
 
+\subsection{理解分支}
+每个 Git 仓库都包含一个提交库。这些提交通过元数据相互链接，每个提交包含一个指向自身父提交的引用。
+
+Git 中的分支实际上是一个指向某个特定提交的命名指针。
+
+你创建的任何提交对象都是本地的，并且只属于你，直到你选择主动将它们共享到一个远程仓库。
+
+一帮来说，一种约定包含两类分支：
+\begin{itemize}
+   \item 长期活跃的公开分支
+   \item 短暂的私有分支
+\end{itemize}
+
+\subsection{挑选约定}
+形成文档的约定让新参与者更加容易上手。
+
+\subsection{几种约定}
+
+\subsubsection{主线分支开发}
+
+\subsubsection{功能分支部署}
+
+\subsubsection{状态分支}
+
+\subsubsection{计划部署}
+
+\subsection{更新分支}
+
 \section{工作流}
 
 \section{单人团队}
