@@ -1,5 +1,7 @@
 %!TEX program = xelatex
 \documentclass[cn,normal,11pt]{../elegantnote}
+\usepackage{tikz}
+\usetikzlibrary{calc,intersections,positioning,quotes,angles,arrows.meta}
 
 \title{软件架构设计（读书笔记）}
 
@@ -96,6 +98,51 @@
 \begin{definition}[直接 I/O]
    Linux 的系统调用：open，close，lseek，fsync，read，write，pread，pwrite……
 \end{definition}
+
+
+\begin{figure}
+	\centering
+   \begin{tikzpicture}[
+      >={Straight Barb[angle=60:3pt 3]},
+      ltnode/.style={rectangle,right,thick,draw,align=center,anchor=west}
+      ]
+      \draw (0,0) node [ltnode,name=n1]  {应用程序\\内存};
+      \foreach \pre/\cur/\content in {1/2/用户缓冲区\\（C 语言 FILE 缓冲）,
+                                       2/3/内核缓冲区\\（Page Cache）,
+                                       3/4/磁盘} {
+         \draw[->,thick] ($ (n\pre.east)+(0.5cm,-0.3cm) $) -- +(1.5cm,0);
+         \draw[<-,thick] ($ (n\pre.east)+(0.5cm,+0.3cm) $) -- ++(1.5cm,0);
+         \draw ($ (n\pre.east)+(2.5cm,0) $) node [ltnode,name=n\cur]  {\content};
+      }
+         
+      \draw[dashed,thick]  ($ (n2.east)+(1.25cm,-0.6cm) $) -- +(0,4cm);
+      \draw ($ (n2.east)+(0,2cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
+      \draw ($ (n3.west)+(0,2cm) $) node [ltnode,fill=black!30] {内核空间};
+   \end{tikzpicture}
+	\caption{缓冲 I/O\label{fig:bfio}}
+\end{figure}
+
+\begin{figure}
+	\centering
+   \begin{tikzpicture}[
+      >={Straight Barb[angle=60:3pt 3]},
+      ltnode/.style={rectangle,right,thick,draw,align=center,anchor=west}
+      ]
+      \draw (0,0) node [ltnode,name=n1]  {应用程序\\内存};
+      \foreach \pre/\cur/\content in {1/2/内核缓冲区\\（Page Cache）,
+                                       2/3/磁盘} {
+         \draw[->,thick] ($ (n\pre.east)+(0.5cm,-0.3cm) $) -- +(1.5cm,0);
+         \draw[<-,thick] ($ (n\pre.east)+(0.5cm,+0.3cm) $) -- ++(1.5cm,0);
+         \draw ($ (n\pre.east)+(2.5cm,0) $) node [ltnode,name=n\cur]  {\content};
+      }
+         
+      \draw[dashed,thick]  ($ (n1.east)+(1.25cm,-0.6cm) $) -- +(0,4cm);
+      \draw ($ (n1.east)+(0,2cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
+      \draw ($ (n2.west)+(0,2cm) $) node [ltnode,fill=black!30] {内核空间};
+   \end{tikzpicture}
+	\caption{直接 I/O\label{fig:drio}}
+\end{figure}
+
 \begin{note}
       \item “直接 I/O”中“直接”的意思是没有用到用户缓冲区，但是内核缓冲区还是用到的。
       \item fflush：用户缓冲区-->内核缓冲区；fsync：内核缓冲区-->磁盘。
