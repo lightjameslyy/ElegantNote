@@ -115,16 +115,47 @@ Git 中的分支实际上是一个指向某个特定提交的命名指针。
 形成文档的约定让新参与者更加容易上手。
 
 \subsection{几种约定}
+不管选择什么策略，记得把决定形成文档。
 
 \subsubsection{主线分支开发}
+项目的主分支应该只包含经过测试的工作，并且绝不应该被破坏。
+
+一开始开发者开启自己的分支各自工作，分支数量上升；后来开发者完成工作并跟其他分支整合，分支数量又降下去了。
 
 \subsubsection{功能分支部署}
+区分功能分支和集成分支，功能分支之间通过集成分支保持同步。
 
 \subsubsection{状态分支}
+引入了分支位置或快照的概念。
+
+版本号：MAJOR.MINOR.PATCH
 
 \subsubsection{计划部署}
+场景：没有一个完全自动化的测试集，却必须计划一个部署。
+
+流行的实现: GitFlow
+\begin{itemize}
+   \item 起初只有一个 develop 分支
+   \item 基于工单（issue）开分支，分支命名规则：[ticket\_id]-[terse\_title]
+   \item 功能冻结：到某个时间点没有新的功能要做。功能冻结之后只允许 bug 修复
+   \item 
+\end{itemize}
 
 \subsection{更新分支}
+
+两种策略：
+\begin{enumerate}
+   \item 合并（merge）
+   \item 变基（rebase）:\textcolor{red}{prefered}。
+\end{enumerate}
+
+变基的两种方式：
+\begin{enumerate}
+   \item 代替合并
+   \item 更改现有分支上的历史
+\end{enumerate}
+
+变基的优点：可读性较好，分支历史易于阅读。
 
 \section{工作流}
 

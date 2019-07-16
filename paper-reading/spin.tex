@@ -1,5 +1,6 @@
 %!TEX program = xelatex
 \documentclass[cn,pad,11pt,green,geye]{../elegantnote}
+\usepackage{tikz}
 
 \title{sPIN: High-performance streaming Processing in the Network（阅读笔记）}
 
@@ -75,25 +76,118 @@ handler code 在连接建立阶段传递，这样单进程就可以对不同的�
 \begin{enumerate}
    \item active messages（AM）：
       \begin{itemize}
-         \item AM 针对 full messages，sPIN 则是基于 per-packet 的流式处理。
-         \item AM 将消息缓存在 host memory，sPIN 主要将消息放在
+         \item AM 针对 full messages；sPIN 则是基于 per-packet 的流式处理。
+         \item AM 将消息缓存在 host memory；sPIN 主要将消息放在 fast buffer memory on NIC，尽量减少对 host memory 的访问。
+         \item 在 AM 上一个 message 是 atomic 的（message 到达后，handler 对整个 message 处理）；sPIN 则是每次对消息的一部分（packets）进行原子的操作。
       \end{itemize}
 \end{enumerate}
 
+sPIN 比 AM 更靠近 packet processing system。
+
+硬件支持：Intel IXP、Netronome NFP。
+
+编程模型支持: SDN（software defined networking）、P4、FlexNIC。
+
 \section{Processing in the Network}
+sPIN 的中心思想基于：网络设备将消息切分为 packets 进行传输。
+
+开发者定义的 handler functions 处理一组 packets（逻辑上构成一个 message），handlers 被调度到 HPUs 上执行。
+
+header packet：标识 message，steering into memory。
+
+sPIN 通过 NIC-based runtime system 来判断哪些 packets 属于同一个 message，之后对这些 packet 用三种定义好的 handlers 处理。
+
+\begin{note}
+   packet 的到来和处理都是乱序的。
+\end{note}
+
+HPU memory 的管理通过：host OS 和 user-level application。
+
+handler 的调用不需要通过 host OS。handler 一般只包含几百条指令，可以直接存放在 NIC 上的 fast memeory。
+
+handlers 可以通过 shared memory 通信，但是它们不能管理内存，而且它们的 local memory 直接通过物理地址寻址。
+
+handlers 用 C/C++ 编写，只能编写简单的 code，\textcolor{red}{不能使用系统调用和复杂的库}。
+
+handler 没有 time-exceeded 机制，programmer 需要保证 handler 的操作是 line-rate，否则可能造成 \textcolor{red}{NIC stall 或丢包}。启动 handler 的 cost 要很低，假设\textcolor{red}{一个 packet 到达 one cycle 之内就能启动}。向 handler 传参的 overhead 也要很低。
+
+handler 可以通过 DMA 访问 host memory，但是这样做的代价比较大。handler 是 non-blocking 的，如果 handlers 在等待 host memory，可以将它们调度出 HPUs 切换到其他的 handlers。
+
+handlers 可以生成两种 messages：
+\begin{enumerate}
+   \item messages originating from HPU memory：只包含一个 packet，可以 block HPU thread 直到 delivered
+   \item messages originating from host memory：放进 normal send queue，nonblocking。
+\end{enumerate} 
 
 \section{A COMPLETE sPIN INTERFACE}
 
+As an example to demonstrate all sPIN features, we use the Portals 4 network interface because it offers advanced \textcolor{red}{receiver-side steering (matching), OS bypass, protection, and NIC resource management}.
+
 \subsection{Overview of Portals 4}
+ 选择 logically addressed 和 matched mode。
+
+ sPIN 对 Portal 4 进行整合和扩展提供更强大的 message steering、protocol implementation、packet processing。
 
 \subsection{A sPIN Interface for Portals 4}
+derive a candidate Portals 4 (P4) interface called \textcolor{red}{P4sPIN}.
 
+每个 packet handler 都关联一个特定的 ME（mathcing entry），扩展了 PtlMEAppend 调用。
+
+通过 PtlHPUAllocMem 分配 HPU memory，如果多个 incoming messages 匹配的 ME 对应同一段 HPU memeory，handlers 需要进行并发控制。
+
+\subsubsection{Header Handler}
+called \textcolor{red}{once per message}。
+
+header handler 完成之前不会启动其他的 handlers。
+
+\textcolor{red}{User-defined headers} are declared statically in a struct to enable fast parsing in hardware. pre-defined headers could be in special registers while \textcolor{red}{user-defined headers can reside in HPU memory}。
+
+\subsubsection{Payload Handler}
+在 header handler 之后调用，\textcolor{red}{for packets carrying payload}。
+
+payload 不包括 user-defined header。
+
+不同的 payload handler 可以并行执行，由 programmer 负责并发控制。
+
+PTL\_NUM\_HPUS 限制可以同时执行的 handlers 的个数。
+
+PTL\_MY\_HPU 可以指定 handler 在哪个 HPU 上执行。
+
+handler 开始执行后就不能 migrate 到其他的 HPU 上。
+
+The flag \textcolor{red}{flow\_control\_triggered} indicates that flow control was triggered during the processing of this message and thus some packets may have been dropped without being processed by payload handlers.
+
+\subsubsection{Completion Handler}
+\textcolor{red}{called once per message} after 所有 header handlers 和 payload handlers 完成，before 向 host 发送 completion event。
+
+used for \textcolor{red}{final data collection 或 cleanup tasks}。
 
 \section{PROTOTYPING sPIN}
+NISA（Network Instruction Set Architecture）
+
+两种作为 NISA 的 sPIN 的原型：
+\begin{enumerate}
+   \item discrete network card（dis）：跟 CPU 进行 chip-to-chip 互联（比如 PCIe）。
+   \item integrated network card（int）：跟 CPU cores 在同一个 chip 上，通过 fast singnaling protocol（比如 AXI）进行互联。
+\end{enumerate}
 
 \subsection{HPU Design}
+assume NIC architecture can be re-used，sPIN 可以理解为为每个应用在 NIC 上安装客制化的固件。
+
+HPU 访问 local memory 和 packet buffer 要尽量快，HPU memory is not cached。
+
+大多数 HPU 指令单周期完成，handler 在 packet 到达或之前 handler 完成后立即调用。handler is pre-loaded and pre-initialized. 可以通过多线程高效利用 HPU 执行单元，当 handler thread 等待 DMA 时可以 deschedule，调度其他 threads。
+
+handler 的执行会延迟正在处理的 messages --> 需要足够的 HPU core 在全带宽状态下工作，而且需要额外的内存空间。
+
+可以根据 Little’s law 计算 memory overhead 的大小。通过增加空间掩盖延迟，可以达到几微秒。
 
 \subsection{Simulation Setup}
+两个开源的 simulators：
+\begin{enumerate}
+   \item LogGOPSim：模拟并行分布式内存应用的网络。可以模拟 MPI 应用，已经在 IB 集群上调校和验证过。
+   \item gem5：模拟各种 CPU 和 HPU 配置。cycle-accurate。
+\end{enumerate}
 
 \subsection{DMA and Memory Contention}
 

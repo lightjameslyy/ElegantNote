@@ -1,5 +1,5 @@
 %!TEX program = xelatex
-\documentclass[cn,normal,11pt]{../elegantnote}
+\documentclass[cn,normal,12pt]{../elegantnote}
 \usepackage{tikz}
 \usetikzlibrary{calc,intersections,positioning,quotes,angles,arrows.meta}
 
@@ -95,12 +95,8 @@
 \begin{definition}[缓冲 I/O]
    C 语言提供的库函数（以 f 打头）：fopen，fclose，fseek，fflush，fread，fwrite，fprintf，fscanf……
 \end{definition}
-\begin{definition}[直接 I/O]
-   Linux 的系统调用：open，close，lseek，fsync，read，write，pread，pwrite……
-\end{definition}
 
-
-\begin{figure}
+\begin{figure}[!htbp]
 	\centering
    \begin{tikzpicture}[
       >={Straight Barb[angle=60:3pt 3]},
@@ -115,14 +111,18 @@
          \draw ($ (n\pre.east)+(2.5cm,0) $) node [ltnode,name=n\cur]  {\content};
       }
          
-      \draw[dashed,thick]  ($ (n2.east)+(1.25cm,-0.6cm) $) -- +(0,4cm);
-      \draw ($ (n2.east)+(0,2cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
-      \draw ($ (n3.west)+(0,2cm) $) node [ltnode,fill=black!30] {内核空间};
+      \draw[dashed,thick]  ($ (n2.east)+(1.25cm,-0.8cm) $) -- +(0,3.5cm);
+      \draw ($ (n2.east)+(0.5cm,2cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
+      \draw ($ (n3.west)+(-0.5cm,2cm) $) node [ltnode,fill=black!30] {内核空间};
    \end{tikzpicture}
 	\caption{缓冲 I/O\label{fig:bfio}}
 \end{figure}
 
-\begin{figure}
+\begin{definition}[直接 I/O]
+   Linux 的系统调用：open，close，lseek，fsync，read，write，pread，pwrite……
+\end{definition}
+
+\begin{figure}[!htbp]
 	\centering
    \begin{tikzpicture}[
       >={Straight Barb[angle=60:3pt 3]},
@@ -136,12 +136,14 @@
          \draw ($ (n\pre.east)+(2.5cm,0) $) node [ltnode,name=n\cur]  {\content};
       }
          
-      \draw[dashed,thick]  ($ (n1.east)+(1.25cm,-0.6cm) $) -- +(0,4cm);
-      \draw ($ (n1.east)+(0,2cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
-      \draw ($ (n2.west)+(0,2cm) $) node [ltnode,fill=black!30] {内核空间};
+      \draw[dashed,thick]  ($ (n1.east)+(1.25cm,-0.8cm) $) -- +(0,3.5cm);
+      \draw ($ (n1.east)+(0.5cm,2cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
+      \draw ($ (n2.west)+(-0.5cm,2cm) $) node [ltnode,fill=black!30] {内核空间};
    \end{tikzpicture}
 	\caption{直接 I/O\label{fig:drio}}
 \end{figure}
+
+从缓冲 I/O 和直接 I/O 的示意图中可以看出：一次读写操作，缓冲 I/O 需要 3 次拷贝，直接 I/O 需要 2 次拷贝。
 
 \begin{note}
       \item “直接 I/O”中“直接”的意思是没有用到用户缓冲区，但是内核缓冲区还是用到的。
@@ -152,12 +154,181 @@
 \subsection{内存映射文件与零拷贝}
 
 \subsubsection{内存映射文件}
+在 Linux 中对应的系统调用是 \lstinline{mmap}。
+
+应用程序的逻辑内存地址直接映射到 Linux 操作系统的内核缓冲区，\textcolor{red}{实际读写的是内核缓冲区}。
+
+\begin{note}
+   \item \textcolor{red}{TODO}：try mmap，测试进程实际内存占用量。
+   \item \textcolor{red}{我之前的误区}：误以为 mmap 是将应用程序的逻辑内存映射到物理内存。
+\end{note}
+
+\begin{figure}[!htbp]
+	\centering
+   \begin{tikzpicture}[
+      >={Straight Barb[angle=60:3pt 3]},
+      ltnode/.style={rectangle,right,thick,draw,align=center,anchor=west}
+      ]
+      \draw (0,0) node [ltnode,dashed,name=n1]  {应用程序\\逻辑内存};
+      \draw[<->,very thick] ($ (n1.east)+(0.5cm,0) $) -- +(1.5cm,0);
+      \draw ($ (n1.east)+(1.25cm,+0.5cm) $) node {映\ 射};
+      \draw ($ (n1.east)+(2.5cm,0) $) node [ltnode,name=n2]  {内核缓冲区\\（Page Cache）};
+      \draw[->,thick] ($ (n2.east)+(0.5cm,-0.3cm) $) -- +(1.5cm,0);
+      \draw[<-,thick] ($ (n2.east)+(0.5cm,+0.3cm) $) -- +(1.5cm,0);
+      \draw ($ (n2.east)+(2.5cm,0) $) node [ltnode,name=n3]  {磁盘};
+         
+      \draw[dashed,thick]  ($ (n1.east)+(1.25cm,-0.8cm) $) -- +(0,3.5cm);
+      \draw ($ (n1.east)+(0.5cm,2cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
+      \draw ($ (n2.west)+(-0.5cm,2cm) $) node [ltnode,fill=black!30] {内核空间};
+   \end{tikzpicture}
+	\caption{内存映射文件原理\label{fig:mmap}}
+\end{figure}
 
 \subsubsection{零拷贝}
+需求：把文件中的数据发送到网络。
+
+约束：尽量减少数据在内存中拷贝的次数。
+
+\begin{enumerate}
+   \item 实现方法 1：直接 I/O，整个过程需要 4 次数据拷贝。
+      \begin{lstlisting}[frame=single]
+         fd1 = 文件描述符
+         fd2 = socket 描述符
+         buffer = 应用程序内存
+         read(fd1, buffer...) // 先把数据从文件读到应用程序内存
+         write(fd2, buffer...)   // 再通过网络发送出去 
+      \end{lstlisting}
+
+      \begin{figure}[!htbp]
+         \centering
+         \begin{tikzpicture}[
+            >={Straight Barb[angle=60:3pt 3]},
+            ltnode/.style={rectangle,right,thick,draw,align=center,anchor=west}
+            ]
+            \draw (0,0) node [ltnode,name=n1,minimum height=4cm]  {应用程序\\内存};
+            \foreach \pre/\cur/\content/\yoffset in {
+               1/2/内核缓冲区\\（Page Cache）/1.2, 
+               2/3/磁盘/0} {
+               \draw[<-,thick] ($ (n\pre.east)+(0.5 cm,\yoffset cm) $) -- +(1.5cm,0);
+               \draw ($ (n\pre.east)+(2.5 cm,\yoffset cm) $) node [ltnode,name=n\cur]  {\content};
+            }
+            \foreach \pre/\cur/\content/\yoffset in {
+               1/4/Socket 缓冲区/1.2, 
+               4/5/网络/0} {
+               \draw[->,thick] ($ (n\pre.east)+(0.5 cm,-\yoffset cm) $) -- +(1.5cm,0);
+               \draw ($ (n\pre.east)+(2.5 cm,-\yoffset cm) $) node [ltnode,name=n\cur]  {\content};
+            }
+            \draw[dashed,thick]  ($ (n1.east)+(1.25 cm,-2.5 cm) $) -- +(0,6cm);
+            \draw ($ (n2.west)+(-0.5 cm,1.5 cm) $) node [ltnode,fill=black!30,name=nei] {内核空间};
+            \draw ($ (nei.west)+(-1.5 cm,0 cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
+         \end{tikzpicture}
+         \caption{直接 I/O实现文件的网络发送\label{fig:zcdrio}}
+      \end{figure}
+   \item 实现方法 2：内存映射文件，整个过程需要 3 次数据拷贝。
+      \begin{lstlisting}[frame=single]
+         fd1 = 文件描述符
+         fd2 = socket 描述符
+         buffer = 应用程序内存
+         mmap(fd1, buffer...) // 先把磁盘数据映射到 buffer 上
+         write(fd2, buffer...)   // 再通过网络发送出去 
+      \end{lstlisting}
+
+      \begin{figure}[!htbp]
+         \centering
+         \begin{tikzpicture}[
+            >={Straight Barb[angle=60:3pt 3]},
+            ltnode/.style={rectangle,right,thick,draw,align=center,anchor=west}
+            ]
+            \draw (0,0) node [ltnode,dashed,name=n1]  {应用程序\\内存};
+            \foreach \pre/\cur/\content/\yoffset in {
+               1/2/内核缓冲区\\（Page Cache）/0, 
+               2/3/磁盘/0} {
+               \draw[<-,thick] ($ (n\pre.east)+(0.5 cm,\yoffset cm) $) -- +(1.5cm,0);
+               \draw ($ (n\pre.east)+(2.5 cm,\yoffset cm) $) node [ltnode,name=n\cur]  {\content};
+            }
+            \draw[->,thick] ($ (n1.east)+(0.5 cm,0 cm) $) -- +(1.5cm,0);
+            \draw ($ (n1.east)+(1.25cm,+0.5cm) $) node {映\ 射};
+
+            \draw ($ (n2.base)+(0 cm,-2.5 cm) $) node [ltnode,anchor=base,name=n4]  {Socket 缓冲区};
+            \draw[->,thick] ($ (n4.east)+(0.5 cm,0 cm) $) -- +(1.5cm,0);
+            \draw ($ (n4.east)+(2.5 cm,0 cm) $) node [ltnode,name=n5]  {网络};
+            \draw[->,thick] ($ (n2.south)+(0 cm,-0.5 cm) $) -- ($ (n4.north)+(0 cm, 0.5 cm) $);
+
+            \draw[dashed,thick]  ($ (n1.east)+(1.25 cm,-3 cm) $) -- +(0,6cm);
+            \draw ($ (n2.west)+(-0.5 cm,1.5 cm) $) node [ltnode,fill=black!30,name=nei] {内核空间};
+            \draw ($ (nei.west)+(-1.5 cm,0 cm) $) node [ltnode,fill=black!30,anchor=east] {用户空间};
+         \end{tikzpicture}
+         \caption{内存映射文件实现文件的网络发送\label{fig:zcmmap}}
+      \end{figure}
+
+   \item 实现方法 3：零拷贝，整个过程需要 2 次数据拷贝。
+      \begin{lstlisting}[frame=single]
+         fd1 = 文件描述符
+         fd2 = socket 描述符
+         sendfile(fd2, fd1...)   // 通过 Linux 系统调用实现零拷贝
+      \end{lstlisting}
+
+      \begin{figure}[!htbp]
+         \centering
+         \begin{tikzpicture}[
+            >={Straight Barb[angle=60:3pt 3]},
+            ltnode/.style={rectangle,right,thick,draw,align=center,anchor=west}
+            ]
+            \draw[dashed,thick]  (0,0) -- +(0,6cm);
+            \draw (1 cm, 3.5 cm) node [ltnode,name=n2]  {内核缓冲区\\（Page Cache）};
+            \draw[<-,thick] ($ (n2.east)+(0.5 cm,0 cm) $) -- +(1.5cm,0);
+            \draw ($ (n2.east)+(2.5 cm,0 cm) $) node [ltnode,name=n3]  {磁盘};
+            \draw ($ (n2.base)+(0 cm,-2.5 cm) $) node [ltnode,anchor=base,name=n4]  {Socket 缓冲区};
+            \draw[->,thick] ($ (n4.east)+(0.5 cm,0 cm) $) -- +(1.5cm,0);
+            \draw ($ (n4.east)+(2.5 cm,0 cm) $) node [ltnode,name=n5]  {网络};
+            \draw[<->,very thick] ($ (n2.south)+(0 cm,-0.3 cm) $) -- node[right=1pt] {映射} ($ (n4.north)+(0 cm, 0.3 cm) $);
+            \draw ($ (n2.west)+(-0.5 cm,1.5 cm) $) node [ltnode,fill=black!30,name=nei] {内核空间};
+         \end{tikzpicture}
+         \caption{零拷贝\label{fig:zc}}
+      \end{figure}
+
+\end{enumerate}
+
+\begin{note}
+   \item \textcolor{red}{“映射”和“拷贝”的区别}：拷贝是将数据从一块内存\textcolor{red}{复制}到另一块内存；映射相当于持有数据的\textcolor{red}{引用（或地址）}，数据本身只有一份。
+   \item “零拷贝”是指\textcolor{red}{数据在内存中不存在拷贝}，只存在内存和 I/O 之间传输。
+   \item Kafka 消费消息的时候利用了零拷贝技术。
+\end{note}
 
 \subsection{网络 I/O 模型}
+区分操作系统层面和应用框架层面，底层和上层。
 
 \subsubsection{实现层面的网络 I/O 模型}
+\textbf{\textcolor{red}{概念纠正}}：
+\begin{itemize}
+   \item 非阻塞 I/O（Non-Blocking I/O）$ \neq $ 异步 I/O（asynchronous I/O）
+   \item I/O 多路复用（select、poll、epoll）$ \neq $ 异步 I/O（asynchronous I/O） 
+   \item 不存在“\textcolor{red}{异步阻塞 I/O}” 这种说法
+\end{itemize}
+
+Linux 操作系统中的网络 I/O 模型：
+\begin{table}[!htbp]
+  \small
+  \centering
+  \caption{网络 I/O 模型}
+    \begin{tabular}{c|c|c}
+    \toprule
+            分类    &       I/O 模型            &          具体实现        \\
+    \midrule
+            同步 I/O     &     外部招式        &      内功心法      \\
+                    &     行（实践）      &      知（理论）    \\
+            异步 I/O       &       答案          &        问题        \\
+    \bottomrule
+    \end{tabular}%
+  \label{tab:niom}%
+\end{table}%
+
+\begin{enumerate}
+   \item 同步阻塞 I/O
+   \item 同步非阻塞 I/O
+   \item I/O 多路复用
+   \item 异步 I/O
+\end{enumerate}
 
 \subsubsection{Reactor 模式与 Proactor 模式}
 
